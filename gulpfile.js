@@ -1,15 +1,18 @@
+# This file is intended as a starting place, nothing more.
+
+
 var gulp = require('gulp');
 var glob = require('glob');
 var plato = require('plato');
 var plugins = require('gulp-load-plugins')();
 var checkstyleFileReporter = require('jshint-checkstyle-file-reporter');
 var log = plugins.util.log;
+var shell = require('gulp-shell');
 
 
 
-var sourceDirectories = ["./src/**/*.js", "./tests/**/*.js"];
-var testDirectories = ["./tests/**/*.js"];
-
+var jsSource = ["./src/**/*.js", "./tests/**/*.js"];
+var pySource = ["./src/**/*.py", "./tests/**/*.py"];
 
 gulp.task('help', plugins.taskListing);
 
@@ -17,24 +20,41 @@ gulp.task('help', plugins.taskListing);
 gulp.task('default', ['help']);
 
 
-gulp.task('test', function () {
-    log('Running unit tests');
+gulp.task('js-test', function () {
+    log('Running JavaScript unit tests');
 
-    return gulp.src(sourceDirectories, {read:false})
+    return gulp.src(jsSource, {read:false})
         .pipe(plugins.mocha({reporter: 'spec'}));
 });
 
 
+
 gulp.task('jshint', function() {
-    log('Linting with jshint -> creating xml output file.');
+    log('Linting with jshint -> creating report file.');
 
     process.env.JSHINT_CHECKSTYLE_FILE = "./jshint.xml"; // default: checkstyle.xml
 
-    return gulp.src(sourceDirectories)
+    return gulp.src(jsSource)
         .pipe(plugins.jshint())
         .pipe(plugins.jshint.reporter(checkstyleFileReporter))
         .pipe(plugins.jshint.reporter('default'));
 });
+
+
+gulp.task("pylint", function() {
+    log('Linting with pylint -> creating report file.');
+
+    var files = [];
+
+    gulp.src(pySource, {read: true})
+        .on('data', function(file) {
+            files.push(file.path);
+        })
+        .on('data', function() {
+            shell.task(['pylint ' + files.join(' ') + ' -f parseable > pylint_report.txt'], {quiet: true, ignoreErrors: true})();
+        });
+});
+
 
 
 gulp.task('plato', function () {
